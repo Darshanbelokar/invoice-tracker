@@ -1,13 +1,3 @@
-/**
- * <StatCard
- *   label="Total invoiced"
- *   value="₹4,82,500"
- *   change="+12% this month"
- *   changeType="up"
- *   icon={<svg…/>}
- *   accent="indigo"   // "indigo" | "emerald" | "amber" | "red"
- * />
- */
 const ACCENTS = {
   indigo:  { bg: 'bg-indigo-50',  icon: 'bg-indigo-100 text-indigo-600',  border: 'border-indigo-100'  },
   emerald: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-600', border: 'border-emerald-100' },
