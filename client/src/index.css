@@ -1,1 +1,138 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap');
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+/* ── CSS Design Tokens ─────────────────────────────────── */
+:root {
+  --brand-gradient: linear-gradient(135deg, #6b5ff8 0%, #4c32d6 100%);
+  --brand-glow: 0 4px 14px rgba(107, 95, 248, 0.35);
+  --card-border: 1px solid #e4e4ef;
+  --sidebar-width: 232px;
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-surface-50 text-surface-800 antialiased;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Syne', sans-serif;
+    @apply tracking-tight;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-200 rounded-full; }
+}
+
+/* ── Component Utilities ─────────────────────────────────── */
+@layer components {
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width);
+    @apply flex-shrink-0 bg-surface-900 flex flex-col h-screen sticky top-0;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium
+           text-surface-400 cursor-pointer transition-all duration-150 select-none;
+  }
+  .nav-item:hover { @apply bg-surface-800 text-surface-100; }
+  .nav-item.active {
+    background: var(--brand-gradient);
+    @apply text-white shadow-brand;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-surface-0 rounded-2xl border border-surface-200 shadow-card
+           transition-shadow duration-200;
+  }
+  .card:hover { @apply shadow-card-hover; }
+
+  /* Stat card */
+  .stat-card {
+    @apply card p-5 flex flex-col gap-3;
+  }
+
+  /* Table */
+  .data-table thead th {
+    @apply text-[11px] font-semibold tracking-widest uppercase text-surface-400
+           pb-3 border-b border-surface-100;
+  }
+  .data-table tbody tr {
+    @apply border-b border-surface-50 transition-colors duration-100 cursor-pointer;
+  }
+  .data-table tbody tr:hover { @apply bg-surface-50; }
+  .data-table tbody td { @apply py-3.5 text-sm; }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-semibold;
+  }
+  .badge::before {
+    content: '';
+    @apply w-1.5 h-1.5 rounded-full block flex-shrink-0;
+  }
+  .badge-paid    { @apply bg-emerald-50 text-emerald-700; }
+  .badge-paid::before    { @apply bg-emerald-500; }
+  .badge-pending { @apply bg-amber-50 text-amber-700; }
+  .badge-pending::before { @apply bg-amber-500; }
+  .badge-overdue { @apply bg-rose-50 text-rose-700; }
+  .badge-overdue::before { @apply bg-rose-500; }
+  .badge-draft   { @apply bg-surface-100 text-surface-500; }
+  .badge-draft::before   { @apply bg-surface-400; }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold
+           text-white transition-all duration-150 active:scale-95;
+    background: var(--brand-gradient);
+    box-shadow: var(--brand-glow);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+           text-surface-500 bg-surface-50 border border-surface-200
+           transition-all duration-150 hover:bg-surface-100 hover:text-surface-700 active:scale-95;
+  }
+
+  .btn-icon {
+    @apply w-8 h-8 flex items-center justify-center rounded-lg text-surface-400
+           bg-surface-50 border border-surface-200
+           transition-all duration-150 hover:bg-surface-100 hover:text-surface-700 active:scale-95;
+  }
+
+  /* Input */
+  .input-field {
+    @apply w-full px-3.5 py-2.5 rounded-xl text-sm bg-surface-50 border border-surface-200
+           text-surface-800 placeholder-surface-400 outline-none
+           transition-all duration-150
+           focus:border-brand-400 focus:ring-2 focus:ring-brand-100 focus:bg-white;
+  }
+  select.input-field {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 2rem;
+  }
+
+  /* Icon badge (stat card icons) */
+  .icon-badge {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+  }
+}
+
+/* ── Animation delays for stagger ───────────────────────── */
+.stagger-1 { animation-delay: .05s; }
+.stagger-2 { animation-delay: .10s; }
+.stagger-3 { animation-delay: .15s; }
+.stagger-4 { animation-delay: .20s; }
+.stagger-5 { animation-delay: .25s; }
