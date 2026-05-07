@@ -10,9 +10,19 @@ const clientSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  contactPerson: String,
   email: String,
   phone: String,
-  address: String
+  address: String,
+  country: {
+    type: String,
+    default: 'USA'
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'archived'],
+    default: 'active'
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Client', clientSchema);

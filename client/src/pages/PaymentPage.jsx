@@ -1,20 +1,71 @@
+import { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { payments, revenueData } from '../data/mockData';
 import { formatCurrency, formatDate, StatusBadge } from '../utils/helpers';
+import { paymentAPI } from '../services/api';
+import { useApp } from '../context/AppContext';
 import { DollarSign, TrendingUp, Clock, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function PaymentsPage() {
-  const total = payments.reduce((s, p) => s + p.amount, 0);
-  const completed = payments.filter(p => p.status === 'completed').reduce((s, p) => s + p.amount, 0);
-  const pending = payments.filter(p => p.status === 'pending').reduce((s, p) => s + p.amount, 0);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { invoices } = useApp();
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setLoading(true);
+        const response = await paymentAPI.getAll();
+        setPayments(response.data || []);
+      } catch (error) {
+        console.error('Failed to fetch payments:', error);
+        setPayments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  // Calculate revenue data from invoices
+  const revenueData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = {};
+
+    months.forEach((month, idx) => {
+      monthlyData[idx] = { month, revenue: 0 };
+    });
+
+    invoices.forEach(invoice => {
+      if (invoice.status === 'paid' && invoice.issuedDate) {
+        const date = new Date(invoice.issuedDate);
+        const monthIdx = date.getMonth();
+        if (monthlyData[monthIdx]) {
+          monthlyData[monthIdx].revenue += invoice.amount || 0;
+        }
+      }
+    });
+
+    return Object.values(monthlyData);
+  }, [invoices]);
+
+  const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const completed = payments.filter(p => p.status === 'completed').reduce((s, p) => s + (p.amount || 0), 0);
+  const pending = payments.filter(p => p.status === 'pending').reduce((s, p) => s + (p.amount || 0), 0);
 
   const methodColors = { 'Bank Transfer': 'bg-indigo-50 text-indigo-700', 'Credit Card': 'bg-violet-50 text-violet-700', 'Wire Transfer': 'bg-blue-50 text-blue-700', 'PayPal': 'bg-sky-50 text-sky-700' };
 
   return (
     <DashboardLayout title="Payments">
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Received', value: formatCurrency(total), icon: DollarSign, color: 'text-indigo-500', bg: 'bg-indigo-50' },
           { label: 'Completed', value: formatCurrency(completed), icon: CheckCircle, color: 'text-emerald-500', bg: 'bg-emerald-50' },
@@ -77,6 +128,8 @@ export default function PaymentsPage() {
           </table>
         </div>
       </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

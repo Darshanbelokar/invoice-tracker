@@ -10,13 +10,9 @@ const generateInvoicePDF = (doc, invoice) => {
   //HEADER SECTION 
   doc.fontSize(24).font('Helvetica-Bold').fillColor('#333').text('Your Business Name', margin, margin);
   
-  doc.fontSize(14).font('Helvetica-Bold').fillColor('#333').text('Invoice', pageWidth - margin - 150, margin, { width: 150, align: 'right' });
-  doc.fontSize(12).fillColor('#666').text(`#${invoice._id.toString().slice(-6).toUpperCase()}`, pageWidth - margin - 150, doc.y, { width: 150, align: 'right' });
-  doc.fontSize(10).fillColor('#999').text('Tax Invoice', pageWidth - margin - 150, doc.y, { width: 150, align: 'right' });
+  doc.moveDown(1);
 
-  doc.moveDown(1.5);
-
-  //BILL TO SECTION 
+  // BILL TO SECTION (LEFT SIDE)
   doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('BILL TO', margin, doc.y);
   doc.fontSize(10).font('Helvetica').fillColor('#555');
   doc.text(invoice.clientId.name, margin, doc.y + 3);
@@ -24,57 +20,47 @@ const generateInvoicePDF = (doc, invoice) => {
   doc.text(invoice.clientId.email || 'client@email.com', margin, doc.y);
   doc.text(invoice.clientId.phone || 'Phone Number', margin, doc.y);
 
-  // Invoice Details on right
-  const detailsY = doc.y - 60;
-  doc.fontSize(10).font('Helvetica').fillColor('#666');
-  doc.text('Issue date:', pageWidth - margin - 150, detailsY, { width: 80 });
-  doc.font('Helvetica-Bold').text(new Date(invoice.createdAt).toLocaleDateString(), pageWidth - margin - 70, detailsY, { width: 70 });
+  // INVOICE DETAILS BOX (RIGHT SIDE)
+  const invoiceBoxX = pageWidth - margin - 180;
+  const invoiceBoxY = margin + 25;
+  const boxWidth = 170;
+  const boxHeight = 90;
   
-  doc.font('Helvetica').text('Due date:', pageWidth - margin - 150, detailsY + 20, { width: 80 });
-  doc.font('Helvetica-Bold').text(new Date(invoice.dueDate).toLocaleDateString(), pageWidth - margin - 70, detailsY + 20, { width: 70 });
+  // Draw box background
+  doc.rect(invoiceBoxX, invoiceBoxY, boxWidth, boxHeight).fill('#f5f5f5');
+  doc.rect(invoiceBoxX, invoiceBoxY, boxWidth, boxHeight).stroke('#ddd');
   
-  doc.font('Helvetica').text('Reference:', pageWidth - margin - 150, detailsY + 40, { width: 80 });
-  doc.font('Helvetica-Bold').text(invoice._id.toString().slice(-8).toUpperCase(), pageWidth - margin - 70, detailsY + 40, { width: 70 });
+  // Invoice label
+  doc.fontSize(12).font('Helvetica-Bold').fillColor('#333');
+  doc.text('Invoice', invoiceBoxX + 10, invoiceBoxY + 8, { width: boxWidth - 20 });
+  
+  // Invoice number
+  doc.fontSize(14).font('Helvetica-Bold').fillColor('#F4A460');
+  doc.text(`#${invoice._id.toString().slice(-6).toUpperCase()}`, invoiceBoxX + 10, invoiceBoxY + 25, { width: boxWidth - 20 });
+  
+  // Details
+  doc.fontSize(8).font('Helvetica').fillColor('#666');
+  doc.text(`Issue: ${new Date(invoice.createdAt).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 48, { width: boxWidth - 20 });
+  doc.text(`Due: ${new Date(invoice.dueDate).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 62, { width: boxWidth - 20 });
+  doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
+  doc.text(`Amount: ₹${invoice.totalAmount.toFixed(2)}`, invoiceBoxX + 10, invoiceBoxY + 75, { width: boxWidth - 20 });
 
-  doc.moveDown(3);
-
-  //  INFO HEADER ROW 
-  const headerY = doc.y;
-  const rowHeight = 20;
-  const col1 = margin;
-  const col2 = pageWidth - margin - 250;
-  const col3 = pageWidth - margin - 150;
-  const col4 = pageWidth - margin - 70;
-
-  doc.rect(margin, headerY, pageWidth - margin * 2, rowHeight).fill('#F4A460'); 
-  doc.fillColor('#fff').font('Helvetica-Bold').fontSize(10);
-  doc.text('Invoice No.', col1 + 10, headerY + 5);
-  doc.text('Issue Date', col2, headerY + 5);
-  doc.text('Due Date', col3, headerY + 5);
-  doc.text('Total Due (INR)', col4, headerY + 5);
-
-  const headerRow = [
-    invoice._id.toString().slice(-6).toUpperCase(),
-    new Date(invoice.createdAt).toLocaleDateString(),
-    new Date(invoice.dueDate).toLocaleDateString(),
-    `₹${invoice.totalAmount.toFixed(2)}`
-  ];
-
-  doc.fillColor('#333').text(headerRow[0], col1 + 10, headerY + 5);
-  doc.text(headerRow[1], col2, headerY + 5);
-  doc.text(headerRow[2], col3, headerY + 5);
-  doc.fillColor('#000').font('Helvetica-Bold').text(headerRow[3], col4, headerY + 5);
-
-  doc.moveDown(2.5);
+  doc.moveDown(5);
 
   // ITEMS TABLE HEADER 
   const tableHeaderY = doc.y;
   doc.rect(margin, tableHeaderY, pageWidth - margin * 2, 18).fill('#333');
   doc.fillColor('#fff').font('Helvetica-Bold').fontSize(10);
-  doc.text('Description', col1 + 8, tableHeaderY + 4);
-  doc.text('Quantity', col2 + 20, tableHeaderY + 4);
-  doc.text('Unit price ($)', col3, tableHeaderY + 4);
-  doc.text('Amount ($)', col4, tableHeaderY + 4);
+  
+  const col1 = margin + 8;
+  const col2 = margin + 250;
+  const col3 = margin + 350;
+  const col4 = pageWidth - margin - 80;
+  
+  doc.text('Description', col1, tableHeaderY + 4);
+  doc.text('Quantity', col2, tableHeaderY + 4);
+  doc.text('Unit price', col3, tableHeaderY + 4);
+  doc.text('Amount', col4, tableHeaderY + 4);
 
   doc.moveDown(1.8);
 
@@ -91,8 +77,8 @@ const generateInvoicePDF = (doc, invoice) => {
     doc.rect(margin, itemY - 2, pageWidth - margin * 2, 18).fill(rowBgColor);
     doc.fillColor('#333');
     
-    doc.text(item.name, col1 + 8, itemY);
-    doc.text(item.quantity.toString(), col2 + 20, itemY);
+    doc.text(item.name || 'Item', col1, itemY);
+    doc.text(item.quantity.toString(), col2, itemY);
     doc.text(`₹${item.price.toFixed(2)}`, col3, itemY);
     doc.text(`₹${(item.quantity * item.price).toFixed(2)}`, col4, itemY);
     

@@ -1,9 +1,35 @@
-
-import { revenueData } from '../data/mockData';
+import { useMemo } from 'react';
 import { formatCurrency } from '../utils/helpers';
+import { useApp } from '../context/AppContext';
 
 export default function RevenueChart() {
-  const max = Math.max(...revenueData.map(d => d.revenue));
+  const { invoices } = useApp();
+
+  // Calculate monthly revenue from invoices
+  const revenueData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = {};
+
+    // Initialize all months with 0
+    months.forEach((month, idx) => {
+      monthlyData[idx] = { month, revenue: 0, target: 25000 };
+    });
+
+    // Calculate revenue from paid invoices
+    invoices.forEach(invoice => {
+      if (invoice.status === 'paid' && invoice.issuedDate) {
+        const date = new Date(invoice.issuedDate);
+        const monthIdx = date.getMonth();
+        if (monthlyData[monthIdx]) {
+          monthlyData[monthIdx].revenue += invoice.amount || 0;
+        }
+      }
+    });
+
+    return Object.values(monthlyData);
+  }, [invoices]);
+
+  const max = Math.max(...revenueData.map(d => Math.max(d.revenue, d.target)));
   const months = revenueData.slice(-6);
 
   return (

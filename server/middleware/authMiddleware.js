@@ -3,8 +3,17 @@ const jwt = require('jsonwebtoken');
 // Middleware to verify JWT token
 exports.authenticateToken = (req, res, next) => {
   try {
+    // Check for token in Authorization header first
+    let token = null;
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+    
+    if (authHeader && authHeader.split(' ')[1]) {
+      token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
+    } 
+    // Also check for token in query parameters (for file downloads)
+    else if (req.query.token) {
+      token = req.query.token;
+    }
 
     if (!token) {
       return res.status(401).json({ message: 'Access token required' });

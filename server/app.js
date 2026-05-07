@@ -7,7 +7,7 @@ const app = express();
 // middleware
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -22,7 +22,7 @@ app.use('/api/clients', authenticateToken, require('./routes/clientRoute'));
 app.use('/api/email', authenticateToken, require('./routes/emailRoute'));
 app.use('/api/invoice', authenticateToken, require('./routes/invoiceRoute'));
 app.use('/api/payment', authenticateToken, require('./routes/paymentRoute'));
-app.use('/api/invoices', require('./routes/pdfRoute'));
+app.use('/api/pdf', authenticateToken, require('./routes/pdfRoute'));
 app.use('/api/user', authenticateToken, require('./routes/userRoute'))  ;
 
 // test route

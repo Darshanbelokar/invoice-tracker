@@ -2,17 +2,33 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, ArrowRight, Globe, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { authAPI, setToken } from '../services/api';
 
 export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '', remember: false });
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    setTimeout(() => { navigate('/dashboard'); }, 1200);
+
+    try {
+      const response = await authAPI.login(form.email, form.password);
+      if (response.data?.token) {
+        setToken(response.data.token);
+        navigate('/dashboard');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,7 +51,7 @@ export default function LoginPage() {
               <p className="text-indigo-200 text-lg leading-relaxed">Manage your entire billing workflow with AI-powered automation and real-time insights.</p>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-10 space-y-3">
-              {['$2.4M+ Revenue tracked', '10K+ Invoices generated', '99.9% Uptime guaranteed'].map((s, i) => (
+              {['₹2.4M+ Revenue tracked', '10K+ Invoices generated', '99.9% Uptime guaranteed'].map((s, i) => (
                 <div key={i} className="flex items-center gap-2.5 text-white/90 text-sm">
                   <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">✓</div>
                   {s}
@@ -64,6 +80,8 @@ export default function LoginPage() {
 
           <h1 className="text-3xl font-bold text-slate-900 mb-2" style={{fontFamily:'Syne,sans-serif'}}>Welcome back</h1>
           <p className="text-slate-500 mb-8">Sign in to your account to continue</p>
+
+          {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm mb-6">{error}</div>}
 
           {/* Social */}
           <div className="grid grid-cols-2 gap-3 mb-6">

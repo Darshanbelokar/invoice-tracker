@@ -3,6 +3,7 @@ import { Search, Bell, Menu, Plus, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authAPI } from '../services/api';
 
 export default function Topbar({ title, onCreateInvoice }) {
   const { isDark, toggleDark, setSidebarOpen } = useApp();
@@ -12,7 +13,7 @@ export default function Topbar({ title, onCreateInvoice }) {
 
   const notifications = [
     { text: 'INV-006 is overdue', time: '1h ago', type: 'warning' },
-    { text: 'Payment received $22,000', time: '5h ago', type: 'success' },
+    { text: 'Payment received ₹22,000', time: '5h ago', type: 'success' },
     { text: 'New client Oscorp added', time: '2d ago', type: 'info' },
   ];
 
@@ -92,7 +93,12 @@ export default function Topbar({ title, onCreateInvoice }) {
                   </button>
                 ))}
                 <div className="border-t border-slate-100">
-                  <button onClick={() => navigate('/login')} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                  <button onClick={() => {
+                    authAPI.logout();
+                    setShowProfile(false);
+                    navigate('/login');
+                    window.location.reload();
+                  }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
                     Sign out
                   </button>
                 </div>

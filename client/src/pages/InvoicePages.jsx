@@ -17,7 +17,7 @@ export default function InvoicesPage() {
 
   const filtered = invoices.filter(inv =>
     (status === 'all' || inv.status === status) &&
-    (inv.client.toLowerCase().includes(search.toLowerCase()) || inv.id.toLowerCase().includes(search.toLowerCase()))
+    (inv.clientId?.name?.toLowerCase().includes(search.toLowerCase()) || inv._id?.toLowerCase().includes(search.toLowerCase()))
   );
   const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);

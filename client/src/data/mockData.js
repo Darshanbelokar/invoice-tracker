@@ -43,7 +43,7 @@ export const revenueData = [
 
 export const activities = [
   { id: 1, type: 'invoice_sent', message: 'Invoice INV-005 sent to Stark Industries', time: '2 hours ago', icon: 'send' },
-  { id: 2, type: 'payment', message: 'Payment of $22,000 received from Cyberdyne Systems', time: '5 hours ago', icon: 'payment' },
+  { id: 2, type: 'payment', message: 'Payment of ₹22,000 received from Cyberdyne Systems', time: '5 hours ago', icon: 'payment' },
   { id: 3, type: 'overdue', message: 'Invoice INV-006 is now overdue', time: '1 day ago', icon: 'alert' },
   { id: 4, type: 'client', message: 'New client Oscorp Tech added', time: '2 days ago', icon: 'user' },
   { id: 5, type: 'invoice_sent', message: 'Invoice INV-004 sent to Umbrella Co', time: '3 days ago', icon: 'send' },

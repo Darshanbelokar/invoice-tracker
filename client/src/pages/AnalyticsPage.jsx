@@ -1,25 +1,102 @@
+import { useMemo } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
-import { revenueData, stats } from '../data/mockData';
 import { formatCurrency } from '../utils/helpers';
+import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
 
 export default function AnalyticsPage() {
-  const max = Math.max(...revenueData.map(d => d.revenue));
-  const statusBreakdown = [
-    { label: 'Paid', value: 24, pct: 69, color: 'bg-emerald-500' },
-    { label: 'Pending', value: 8, pct: 23, color: 'bg-amber-400' },
-    { label: 'Overdue', value: 3, pct: 8, color: 'bg-red-500' },
-  ];
-  const topClients = [
-    { name: 'Stark Industries', amount: 241000, pct: 62 },
-    { name: 'Umbrella Co', amount: 89500, pct: 23 },
-    { name: 'Wayne Enterprises', amount: 65000, pct: 17 },
-  ];
+  const { invoices, clients, loading } = useApp();
+
+  // Calculate revenue data and stats from invoices
+  const { revenueData, stats, statusBreakdown, topClients } = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = {};
+
+    months.forEach((month, idx) => {
+      monthlyData[idx] = { month, revenue: 0, target: 25000 };
+    });
+
+    // Calculate revenue and status breakdown
+    let totalRevenue = 0;
+    let paidCount = 0, pendingCount = 0, overdueCount = 0;
+    let paidAmount = 0, pendingAmount = 0;
+
+    invoices.forEach(invoice => {
+      if (invoice.status === 'paid') {
+        paidCount++;
+        paidAmount += invoice.amount || 0;
+        totalRevenue += invoice.amount || 0;
+        if (invoice.issuedDate) {
+          const date = new Date(invoice.issuedDate);
+          const monthIdx = date.getMonth();
+          if (monthlyData[monthIdx]) {
+            monthlyData[monthIdx].revenue += invoice.amount || 0;
+          }
+        }
+      } else if (invoice.status === 'pending') {
+        pendingCount++;
+        pendingAmount += invoice.amount || 0;
+      } else if (invoice.status === 'overdue') {
+        overdueCount++;
+      }
+    });
+
+    const total = invoices.length;
+    const statBreakdown = [
+      { label: 'Paid', value: paidCount, pct: total > 0 ? Math.round((paidCount / total) * 100) : 0, color: 'bg-emerald-500' },
+      { label: 'Pending', value: pendingCount, pct: total > 0 ? Math.round((pendingCount / total) * 100) : 0, color: 'bg-amber-400' },
+      { label: 'Overdue', value: overdueCount, pct: total > 0 ? Math.round((overdueCount / total) * 100) : 0, color: 'bg-red-500' },
+    ];
+
+    // Get top clients by total amount
+    const clientMap = {};
+    invoices.forEach(invoice => {
+      if (!clientMap[invoice.clientName]) {
+        clientMap[invoice.clientName] = 0;
+      }
+      clientMap[invoice.clientName] += invoice.amount || 0;
+    });
+
+    const topCts = Object.entries(clientMap)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+
+    const totalTopAmount = topCts.reduce((sum, c) => sum + c.amount, 0);
+    const enrichedTopClients = topCts.map(c => ({
+      name: c.name,
+      amount: c.amount,
+      pct: totalTopAmount > 0 ? Math.round((c.amount / totalTopAmount) * 100) : 0,
+    }));
+
+    return {
+      revenueData: Object.values(monthlyData),
+      stats: {
+        totalRevenue,
+        paidInvoices: paidCount,
+        pendingInvoices: pendingCount,
+        overdueInvoices: overdueCount,
+        pendingAmount,
+        totalClients: clients.length,
+        totalInvoices: invoices.length,
+      },
+      statusBreakdown: statBreakdown,
+      topClients: enrichedTopClients,
+    };
+  }, [invoices, clients]);
+
+  const max = Math.max(...revenueData.map(d => Math.max(d.revenue, d.target)));
 
   return (
     <DashboardLayout title="Analytics">
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* KPI Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'YTD Revenue', value: formatCurrency(stats.totalRevenue), sub: '+18.4% vs last year', color: 'text-indigo-600' },
           { label: 'Collection Rate', value: '87.3%', sub: '+2.1% this month', color: 'text-emerald-600' },
@@ -95,6 +172,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

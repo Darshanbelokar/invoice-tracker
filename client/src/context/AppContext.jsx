@@ -4,11 +4,7 @@ import {
   useState,
   useEffect
 } from 'react';
-
-import {
-  invoices as mockInvoices,
-  clients as mockClients
-} from '../data/mockData';
+import { invoiceAPI, clientAPI } from '../services/api';
 
 const AppContext = createContext();
 
@@ -18,9 +14,34 @@ export function AppProvider({ children }) {
     localStorage.getItem("theme") === "dark"
   );
 
-  const [invoices, setInvoices] = useState(mockInvoices);
-  const [clients, setClients] = useState(mockClients);
+  const [invoices, setInvoices] = useState([]);
+  const [clients, setClients] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch invoices and clients from database
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [invoicesRes, clientsRes] = await Promise.all([
+          invoiceAPI.getAll(),
+          clientAPI.getAll()
+        ]);
+        
+        setInvoices(invoicesRes.data || []);
+        setClients(clientsRes.data || []);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        setInvoices([]);
+        setClients([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Apply dark mode
   useEffect(() => {
@@ -38,41 +59,55 @@ export function AppProvider({ children }) {
   };
 
   // Invoice actions
-  const addInvoice = (invoice) => {
-    setInvoices(prev => [
-      {
-        ...invoice,
-        id: `INV-00${prev.length + 1}`
-      },
-      ...prev
-    ]);
+  const addInvoice = async (invoice) => {
+    try {
+      const response = await invoiceAPI.create(invoice);
+      const newInvoice = response.data;
+      setInvoices(prev => [newInvoice, ...prev]);
+      return newInvoice;
+    } catch (error) {
+      console.error('Failed to create invoice:', error);
+      throw error;
+    }
   };
 
-  const deleteInvoice = (id) => {
-    setInvoices(prev =>
-      prev.filter(inv => inv.id !== id)
-    );
+  const deleteInvoice = async (id) => {
+    try {
+      await invoiceAPI.delete(id);
+      setInvoices(prev => prev.filter(inv => inv._id !== id));
+    } catch (error) {
+      console.error('Failed to delete invoice:', error);
+      throw error;
+    }
   };
 
-  const updateInvoice = (id, data) => {
-    setInvoices(prev =>
-      prev.map(inv =>
-        inv.id === id
-          ? { ...inv, ...data }
-          : inv
-      )
-    );
+  const updateInvoice = async (id, data) => {
+    try {
+      const response = await invoiceAPI.update(id, data);
+      const updatedInvoice = response.data;
+      setInvoices(prev =>
+        prev.map(inv =>
+          inv._id === id ? updatedInvoice : inv
+        )
+      );
+      return updatedInvoice;
+    } catch (error) {
+      console.error('Failed to update invoice:', error);
+      throw error;
+    }
   };
 
   // Client actions
-  const addClient = (client) => {
-    setClients(prev => [
-      {
-        ...client,
-        id: `C00${prev.length + 1}`
-      },
-      ...prev
-    ]);
+  const addClient = async (client) => {
+    try {
+      const response = await clientAPI.create(client);
+      const newClient = response.data;
+      setClients(prev => [newClient, ...prev]);
+      return newClient;
+    } catch (error) {
+      console.error('Failed to create client:', error);
+      throw error;
+    }
   };
 
   return (
@@ -90,7 +125,9 @@ export function AppProvider({ children }) {
         addClient,
 
         sidebarOpen,
-        setSidebarOpen
+        setSidebarOpen,
+        
+        loading
       }}
     >
       {children}

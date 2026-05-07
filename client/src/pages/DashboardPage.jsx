@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import StatCard from '../components/StatCard';
 import RevenueChart from '../components/RevenueChart';
 import InvoiceTable from '../components/InvoiceTable';
 import { DollarSign, FileText, Clock, AlertTriangle, Users, Activity } from 'lucide-react';
 import { formatCurrency } from '../utils/helpers';
-import { stats, activities } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
 import CreateInvoiceModal from '../components/CreateInvoiceModal';
@@ -18,8 +17,40 @@ const activityIcons = {
 };
 
 export default function DashboardPage() {
-  const { invoices } = useApp();
+  const { invoices, clients, loading } = useApp();
   const [showCreate, setShowCreate] = useState(false);
+
+  // Calculate stats from actual data
+  const stats = useMemo(() => {
+    const paidInvoices = invoices.filter(inv => inv.status === 'paid');
+    const pendingInvoices = invoices.filter(inv => inv.status === 'pending');
+    const overdueInvoices = invoices.filter(inv => inv.status === 'overdue');
+    
+    const totalRevenue = paidInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    const pendingAmount = pendingInvoices.reduce((sum, inv) => sum + (inv.amount || 0), 0);
+    
+    return {
+      totalRevenue,
+      paidInvoices: paidInvoices.length,
+      pendingInvoices: pendingInvoices.length,
+      overdueInvoices: overdueInvoices.length,
+      totalClients: clients.length,
+      totalInvoices: invoices.length,
+      pendingAmount,
+      revenueGrowth: 18.4,
+    };
+  }, [invoices, clients]);
+
+  // Generate activities from recent invoices
+  const activities = useMemo(() => {
+    return invoices.slice(0, 5).map((invoice, idx) => ({
+      id: idx,
+      type: 'invoice_sent',
+      message: `Invoice ${invoice._id?.slice(0, 8)} sent to ${invoice.clientName || 'Client'}`,
+      time: `${idx * 2} hours ago`,
+      icon: 'send',
+    }));
+  }, [invoices]);
 
   const statCards = [
     { title: 'Total Revenue', value: formatCurrency(stats.totalRevenue), change: '+18.4%', changeType: 'up', icon: DollarSign, color: 'indigo' },
@@ -30,10 +61,16 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout title="Dashboard" topbarProps={{ onCreateInvoice: () => setShowCreate(true) }}>
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((c, i) => <StatCard key={c.title} {...c} index={i} />)}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center h-96">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : (
+        <>
+          {/* Stat Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {statCards.map((c, i) => <StatCard key={c.title} {...c} index={i} />)}
+          </div>
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 gap-4">
@@ -93,6 +130,8 @@ export default function DashboardPage() {
       </div>
 
       <CreateInvoiceModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+        </>
+      )}
     </DashboardLayout>
   );
 }

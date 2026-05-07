@@ -3,9 +3,10 @@ const Payment = require('../models/payment');
 // Create a new payment
 exports.createPayment = async (req, res) => {
   try {
-    const { userId, invoiceId, stripeSessionId, amount, currency, paymentMethod } = req.body;
+    const { invoiceId, stripeSessionId, amount, currency, paymentMethod } = req.body;
+    const userId = req.user; // Get from authenticated middleware
 
-    if (!userId || !invoiceId || !stripeSessionId || !amount) {
+    if (!invoiceId || !stripeSessionId || !amount) {
       return res.status(400).json({ message: 'Required fields are missing' });
     }
 
@@ -28,11 +29,7 @@ exports.createPayment = async (req, res) => {
 // Get all payments for a user
 exports.getPayments = async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res.status(400).json({ message: 'userId is required' });
-    }
+    const userId = req.user; // Get from authenticated middleware
 
     const payments = await Payment.find({ userId }).populate('invoiceId');
     res.status(200).json({ message: 'Payments retrieved successfully', data: payments });
@@ -100,10 +97,11 @@ exports.deletePayment = async (req, res) => {
 // Get payments by status
 exports.getPaymentsByStatus = async (req, res) => {
   try {
-    const { userId, status } = req.query;
+    const { status } = req.query;
+    const userId = req.user; // Get from authenticated middleware
 
-    if (!userId || !status) {
-      return res.status(400).json({ message: 'userId and status are required' });
+    if (!status) {
+      return res.status(400).json({ message: 'status is required' });
     }
 
     const payments = await Payment.find({ userId, status }).populate('invoiceId');

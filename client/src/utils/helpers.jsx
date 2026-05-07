@@ -1,5 +1,5 @@
 export const formatCurrency = (amount) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
 
 export const formatDate = (dateStr) =>
   new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -15,7 +15,8 @@ export const statusConfig = {
 };
 
 export const StatusBadge = ({ status }) => {
-  const cfg = statusConfig[status] || statusConfig.draft;
+  const normalizedStatus = status?.toLowerCase() || 'draft';
+  const cfg = statusConfig[normalizedStatus] || statusConfig.draft;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.text}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />

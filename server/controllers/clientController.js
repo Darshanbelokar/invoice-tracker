@@ -3,7 +3,7 @@ const Client = require('../models/Client');
 // Create a new client
 exports.createClient = async (req, res) => {
   try {
-    const { name, email, phone, address } = req.body;
+    const { name, contactPerson, email, phone, address, country, status } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
@@ -12,9 +12,12 @@ exports.createClient = async (req, res) => {
     const newClient = await Client.create({
       userId: req.user,  
       name,
+      contactPerson,
       email,
       phone,
-      address
+      address,
+      country: country || 'USA',
+      status: status || 'active'
     });
 
     res.status(201).json({

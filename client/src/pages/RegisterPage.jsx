@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, ArrowRight, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { authAPI, setToken } from '../services/api';
 
 export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({ name: '', email: '', company: '', password: '' });
   const navigate = useNavigate();
 
@@ -21,10 +23,24 @@ export default function RegisterPage() {
   const strengthColors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500'];
   const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong'];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
-    setTimeout(() => navigate('/dashboard'), 1200);
+
+    try {
+      const response = await authAPI.register(form.email, form.password, form.name);
+      if (response.data?.token) {
+        setToken(response.data.token);
+        navigate('/dashboard');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,6 +77,8 @@ export default function RegisterPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md py-8">
           <h1 className="text-3xl font-bold text-slate-900 mb-2" style={{fontFamily:'Syne,sans-serif'}}>Create your account</h1>
           <p className="text-slate-500 mb-8">Start your 14-day free trial, no credit card required</p>
+
+          {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm mb-6">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">

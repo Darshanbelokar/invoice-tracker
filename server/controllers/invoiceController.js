@@ -18,7 +18,11 @@ exports.createInvoice = async (req, res) => {
     });
 
     await newInvoice.save();
-    res.status(201).json({ message: 'Invoice created successfully', data: newInvoice });
+    
+    // Populate clientId before returning
+    const populatedInvoice = await Invoice.findById(newInvoice._id).populate('clientId');
+    
+    res.status(201).json({ message: 'Invoice created successfully', data: populatedInvoice });
   } catch (error) {
     res.status(500).json({ message: 'Error creating invoice', error: error.message });
   }
@@ -57,11 +61,11 @@ exports.getInvoiceById = async (req, res) => {
 exports.updateInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const { items, totalAmount, dueDate, status } = req.body;
+    const { clientId, items, totalAmount, dueDate, status } = req.body;
 
     const updatedInvoice = await Invoice.findByIdAndUpdate(
       id,
-      { items, totalAmount, dueDate, status },
+      { clientId, items, totalAmount, dueDate, status },
       { new: true, runValidators: true }
     );
 
@@ -69,7 +73,10 @@ exports.updateInvoice = async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    res.status(200).json({ message: 'Invoice updated successfully', data: updatedInvoice });
+    // Populate clientId before returning
+    const populatedInvoice = await Invoice.findById(updatedInvoice._id).populate('clientId');
+
+    res.status(200).json({ message: 'Invoice updated successfully', data: populatedInvoice });
   } catch (error) {
     res.status(500).json({ message: 'Error updating invoice', error: error.message });
   }
