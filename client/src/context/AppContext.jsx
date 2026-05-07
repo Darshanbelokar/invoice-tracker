@@ -1,43 +1,101 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { INVOICES } from '../data/mockData'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect
+} from 'react';
 
-/**
- * AppContext
- *
- * Provides global app state (user, invoices, modal) to the whole tree.
- * Wrap your root in <AppProvider> and consume with useAppContext().
- */
-export const AppContext = createContext(null)
+import {
+  invoices as mockInvoices,
+  clients as mockClients
+} from '../data/mockData';
+
+const AppContext = createContext();
 
 export function AppProvider({ children }) {
-  // Simulated auth — replace with real auth hook/service
-  const [user] = useState({ name: 'Aarav Kumar', role: 'Admin', initials: 'AK' })
 
-  // Invoice state (used by Dashboard + Invoices pages)
-  const [invoices, setInvoices] = useState(INVOICES)
+  const [isDark, setIsDark] = useState(
+    localStorage.getItem("theme") === "dark"
+  );
 
-  const addInvoice = useCallback((invoice) => {
-    setInvoices((prev) => [invoice, ...prev])
-  }, [])
+  const [invoices, setInvoices] = useState(mockInvoices);
+  const [clients, setClients] = useState(mockClients);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const removeInvoice = useCallback((id) => {
-    setInvoices((prev) => prev.filter((inv) => inv.id !== id))
-  }, [])
+  // Apply dark mode
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
 
-  // New Invoice modal visibility
-  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false)
-  const openInvoiceModal  = useCallback(() => setInvoiceModalOpen(true),  [])
-  const closeInvoiceModal = useCallback(() => setInvoiceModalOpen(false), [])
+  const toggleDark = () => {
+    setIsDark(prev => !prev);
+  };
 
-  const value = {
-    user,
-    invoices,
-    addInvoice,
-    removeInvoice,
-    invoiceModalOpen,
-    openInvoiceModal,
-    closeInvoiceModal,
-  }
+  // Invoice actions
+  const addInvoice = (invoice) => {
+    setInvoices(prev => [
+      {
+        ...invoice,
+        id: `INV-00${prev.length + 1}`
+      },
+      ...prev
+    ]);
+  };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>
+  const deleteInvoice = (id) => {
+    setInvoices(prev =>
+      prev.filter(inv => inv.id !== id)
+    );
+  };
+
+  const updateInvoice = (id, data) => {
+    setInvoices(prev =>
+      prev.map(inv =>
+        inv.id === id
+          ? { ...inv, ...data }
+          : inv
+      )
+    );
+  };
+
+  // Client actions
+  const addClient = (client) => {
+    setClients(prev => [
+      {
+        ...client,
+        id: `C00${prev.length + 1}`
+      },
+      ...prev
+    ]);
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        isDark,
+        toggleDark,
+
+        invoices,
+        addInvoice,
+        deleteInvoice,
+        updateInvoice,
+
+        clients,
+        addClient,
+
+        sidebarOpen,
+        setSidebarOpen
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 }
+
+export const useApp = () => useContext(AppContext);
