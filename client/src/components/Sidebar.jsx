@@ -14,6 +14,7 @@ const navItems = [
 
 function SidebarContent({ onClose }) {
   const navigate = useNavigate();
+  const { user } = useApp();
   return (
     <div className="flex flex-col h-full">
       {/* Logo */}
@@ -53,10 +54,10 @@ function SidebarContent({ onClose }) {
           </div>
         </div>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl">
-          <div className="w-8 h-8 gradient-brand rounded-full flex items-center justify-center text-white text-xs font-semibold">JD</div>
+          <div className="w-8 h-8 gradient-brand rounded-full flex items-center justify-center text-white text-xs font-semibold">{user?.name ? user.name.split(' ').map(n=>n[0]).slice(0,2).join('') : 'JD'}</div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">John Doe</p>
-            <p className="text-xs text-slate-400 truncate">john@company.com</p>
+            <p className="text-sm font-medium text-slate-900 truncate">{user?.name || 'John Doe'}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email || 'john@company.com'}</p>
           </div>
         </div>
         <button onClick={() => navigate('/login')} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all w-full">

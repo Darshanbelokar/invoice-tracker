@@ -1,12 +1,9 @@
-// API Configuration
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Token Management
 export const getToken = () => localStorage.getItem('authToken');
 export const setToken = (token) => localStorage.setItem('authToken', token);
 export const clearToken = () => localStorage.removeItem('authToken');
 
-// Get Headers with Auth Token
 const getHeaders = (includeAuth = true) => {
   const headers = {
     'Content-Type': 'application/json',
@@ -22,7 +19,6 @@ const getHeaders = (includeAuth = true) => {
   return headers;
 };
 
-// Core API Call Function
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   
@@ -50,7 +46,6 @@ export const apiCall = async (endpoint, options = {}) => {
   }
 };
 
-// Auth API Endpoints
 export const authAPI = {
   register: (email, password, name) =>
     apiCall('/auth/register', {
@@ -82,7 +77,6 @@ export const authAPI = {
     }),
 };
 
-// Invoice API Endpoints
 export const invoiceAPI = {
   create: (invoiceData) =>
     apiCall('/invoice', {
@@ -112,7 +106,6 @@ export const invoiceAPI = {
     }),
 };
 
-// Client API Endpoints
 export const clientAPI = {
   create: (clientData) =>
     apiCall('/clients', {
@@ -142,7 +135,6 @@ export const clientAPI = {
     }),
 };
 
-// Payment API Endpoints
 export const paymentAPI = {
   create: (paymentData) =>
     apiCall('/payment', {
@@ -172,7 +164,6 @@ export const paymentAPI = {
     }),
 };
 
-// User API Endpoints
 export const userAPI = {
   getProfile: () =>
     apiCall('/user/profile', {
@@ -184,9 +175,14 @@ export const userAPI = {
       method: 'PUT',
       body: JSON.stringify(userData),
     }),
+
+  updatePassword: (currentPassword, newPassword) =>
+    apiCall('/user/profile/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 };
 
-// PDF API Endpoints
 export const pdfAPI = {
   preview: (invoiceId) =>
     apiCall(`/pdf/preview/${invoiceId}`, {
@@ -199,7 +195,6 @@ export const pdfAPI = {
   },
 };
 
-// Email API Endpoints
 export const emailAPI = {
   sendInvoice: (invoiceId, recipientEmail) =>
     apiCall('/email/invoice', {

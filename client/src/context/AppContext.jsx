@@ -4,7 +4,7 @@ import {
   useState,
   useEffect
 } from 'react';
-import { invoiceAPI, clientAPI } from '../services/api';
+import { invoiceAPI, clientAPI, userAPI, getToken } from '../services/api';
 
 const AppContext = createContext();
 
@@ -14,27 +14,28 @@ export function AppProvider({ children }) {
     localStorage.getItem("theme") === "dark"
   );
 
+  const [user, setUser] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [clients, setClients] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch invoices and clients from database
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [invoicesRes, clientsRes] = await Promise.all([
-          invoiceAPI.getAll(),
-          clientAPI.getAll()
-        ]);
-        
-        setInvoices(invoicesRes.data || []);
-        setClients(clientsRes.data || []);
+
+        const promises = [invoiceAPI.getAll(), clientAPI.getAll()];
+        if (getToken()) promises.push(userAPI.getProfile());
+
+        const [invoicesRes, clientsRes, userRes] = await Promise.all(promises);
+
+        setInvoices(invoicesRes?.data || []);
+        setClients(clientsRes?.data || []);
+        if (userRes && userRes.data) setUser(userRes.data);
+
       } catch (error) {
-        console.error('Failed to fetch data:', error);
-        setInvoices([]);
-        setClients([]);
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -43,7 +44,6 @@ export function AppProvider({ children }) {
     fetchData();
   }, []);
 
-  // Apply dark mode
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
@@ -58,56 +58,38 @@ export function AppProvider({ children }) {
     setIsDark(prev => !prev);
   };
 
-  // Invoice actions
-  const addInvoice = async (invoice) => {
+  const refreshUser = async () => {
     try {
-      const response = await invoiceAPI.create(invoice);
-      const newInvoice = response.data;
-      setInvoices(prev => [newInvoice, ...prev]);
-      return newInvoice;
-    } catch (error) {
-      console.error('Failed to create invoice:', error);
-      throw error;
+      const res = await userAPI.getProfile();
+      if (res && res.data) setUser(res.data);
+    } catch (err) {
+      console.error('Failed to refresh user', err);
     }
+  };
+
+  const addInvoice = async (invoice) => {
+    const response = await invoiceAPI.create(invoice);
+    setInvoices(prev => [response.data, ...prev]);
   };
 
   const deleteInvoice = async (id) => {
-    try {
-      await invoiceAPI.delete(id);
-      setInvoices(prev => prev.filter(inv => inv._id !== id));
-    } catch (error) {
-      console.error('Failed to delete invoice:', error);
-      throw error;
-    }
+    await invoiceAPI.delete(id);
+    setInvoices(prev => prev.filter(inv => inv._id !== id));
   };
 
   const updateInvoice = async (id, data) => {
-    try {
-      const response = await invoiceAPI.update(id, data);
-      const updatedInvoice = response.data;
-      setInvoices(prev =>
-        prev.map(inv =>
-          inv._id === id ? updatedInvoice : inv
-        )
-      );
-      return updatedInvoice;
-    } catch (error) {
-      console.error('Failed to update invoice:', error);
-      throw error;
-    }
+    const response = await invoiceAPI.update(id, data);
+
+    setInvoices(prev =>
+      prev.map(inv =>
+        inv._id === id ? response.data : inv
+      )
+    );
   };
 
-  // Client actions
   const addClient = async (client) => {
-    try {
-      const response = await clientAPI.create(client);
-      const newClient = response.data;
-      setClients(prev => [newClient, ...prev]);
-      return newClient;
-    } catch (error) {
-      console.error('Failed to create client:', error);
-      throw error;
-    }
+    const response = await clientAPI.create(client);
+    setClients(prev => [response.data, ...prev]);
   };
 
   return (
@@ -115,6 +97,10 @@ export function AppProvider({ children }) {
       value={{
         isDark,
         toggleDark,
+
+        user,
+        setUser,
+        refreshUser,
 
         invoices,
         addInvoice,
@@ -126,7 +112,7 @@ export function AppProvider({ children }) {
 
         sidebarOpen,
         setSidebarOpen,
-        
+
         loading
       }}
     >

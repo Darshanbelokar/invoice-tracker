@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authAPI } from '../services/api';
 
 export default function Topbar({ title, onCreateInvoice }) {
-  const { isDark, toggleDark, setSidebarOpen } = useApp();
+  const { isDark, toggleDark, setSidebarOpen, user } = useApp();
   const [showProfile, setShowProfile] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const navigate = useNavigate();
@@ -75,7 +75,7 @@ export default function Topbar({ title, onCreateInvoice }) {
         <div className="relative">
           <button onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">
-            <div className="w-7 h-7 gradient-brand rounded-full flex items-center justify-center text-white text-xs font-semibold">JD</div>
+            <div className="w-7 h-7 gradient-brand rounded-full flex items-center justify-center text-white text-xs font-semibold">{user?.name ? user.name.split(' ').map(n=>n[0]).slice(0,2).join('') : 'JD'}</div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
           </button>
           <AnimatePresence>
@@ -83,8 +83,8 @@ export default function Topbar({ title, onCreateInvoice }) {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
                 className="absolute right-0 top-12 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-slate-100">
-                  <p className="text-sm font-semibold text-slate-900">John Doe</p>
-                  <p className="text-xs text-slate-400">john@company.com</p>
+                  <p className="text-sm font-semibold text-slate-900">{user?.name || 'John Doe'}</p>
+                  <p className="text-xs text-slate-400">{user?.email || 'john@company.com'}</p>
                 </div>
                 {['Profile Settings', 'Company Details', 'Billing'].map(item => (
                   <button key={item} onClick={() => { navigate('/settings'); setShowProfile(false); }}

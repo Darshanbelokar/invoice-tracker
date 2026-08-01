@@ -8,7 +8,10 @@ const {
   updateUser,
   deleteUser,
   updatePassword,
-  getUserByEmail
+  getUserByEmail,
+  getProfile,
+  updateProfile,
+  updateCurrentUserPassword
 } = require('../controllers/userController');
 
 userRouter.route('/')
@@ -17,6 +20,14 @@ userRouter.route('/')
 
 userRouter.route('/search/email')
   .get(getUserByEmail);
+
+// profile endpoints for current authenticated user
+userRouter.route('/profile')
+  .get(getProfile)
+  .put(updateProfile);
+
+userRouter.route('/profile/password')
+  .put(updateCurrentUserPassword);
 
 userRouter.route('/:id')
   .get(getUserById)

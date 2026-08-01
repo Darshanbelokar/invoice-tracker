@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 // Create a new user
 exports.createUser = async (req, res) => {
@@ -158,5 +159,108 @@ exports.getUserByEmail = async (req, res) => {
     res.status(200).json({ message: 'User retrieved successfully', data: user });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching user', error: error.message });
+  }
+};
+
+// Get current user's profile from token
+exports.getProfile = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your_secret_key'
+    );
+
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.status(200).json({ message: 'Profile retrieved successfully', data: user });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired token', error: error.message });
+  }
+};
+
+// Update current user's profile from token
+exports.updateProfile = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your_secret_key'
+    );
+
+    const updates = req.body || {};
+
+    // Prevent password updates through this endpoint
+    delete updates.password;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      decoded.userId,
+      updates,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ message: 'Profile updated successfully', data: updatedUser });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired token', error: error.message });
+  }
+};
+
+// Update current user's password from token
+exports.updateCurrentUserPassword = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your_secret_key'
+    );
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(401).json({ message: 'Invalid or expired token', error: error.message });
   }
 };

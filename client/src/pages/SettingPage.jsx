@@ -1,21 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { User, Lock, Bell, Building2, Palette, Sun, Moon, Check } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { motion } from 'framer-motion';
+import { userAPI } from '../services/api';
 
 const tabs = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'company', label: 'Company', icon: Building2 },
   { id: 'appearance', label: 'Appearance', icon: Palette },
 ];
 
 function ProfileTab() {
-  const [form, setForm] = useState({ firstName: 'John', lastName: 'Doe', email: 'john@company.com', phone: '+1 555-0100', timezone: 'UTC-5' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '', timezone: '' });
   const [saved, setSaved] = useState(false);
-  const save = (e) => { e.preventDefault(); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const { setUser } = useApp();
+
+  useEffect(() => {
+    let mounted = true;
+    const loadProfile = async () => {
+      try {
+        setLoadingProfile(true);
+        const res = await userAPI.getProfile();
+        if (!mounted) return;
+        const u = res.data || {};
+        setForm({ firstName: u.firstName || u.name || '', lastName: u.lastName || '', email: u.email || '', phone: u.phone || '', timezone: u.timezone || '' });
+      } catch (err) {
+        console.error('Failed to load profile', err);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    loadProfile();
+    return () => { mounted = false; };
+  }, []);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      const res = await userAPI.updateProfile(form);
+      if (res && res.data) {
+        setSaved(true);
+        setUser(res.data);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      setError(err.message || 'Failed to save profile');
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <form onSubmit={save} className="space-y-5 max-w-lg">
       <div className="flex items-center gap-4 mb-6">
@@ -35,8 +76,9 @@ function ProfileTab() {
         <input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="input-field" /></div>
       <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Phone</label>
         <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="input-field" /></div>
-      <button type="submit" className={`btn-primary transition-all ${saved ? 'bg-emerald-500 !from-emerald-500 !to-emerald-600' : ''}`}>
-        {saved ? <><Check className="w-4 h-4"/>Saved!</> : 'Save Changes'}
+      {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm mb-2">{error}</div>}
+      <button type="submit" disabled={saving} className={`btn-primary transition-all ${saved ? 'bg-emerald-500 !from-emerald-500 !to-emerald-600' : ''} ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}>
+        {saving ? 'Saving...' : (saved ? <><Check className="w-4 h-4"/>Saved!</> : 'Save Changes')}
       </button>
     </form>
   );
@@ -44,15 +86,57 @@ function ProfileTab() {
 
 function SecurityTab() {
   const [form, setForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    // Validation
+    if (!form.current || !form.newPass || !form.confirm) {
+      setError('All fields are required');
+      return;
+    }
+    if (form.newPass.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+    if (form.newPass !== form.confirm) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await userAPI.updatePassword(form.current, form.newPass);
+      setSuccess(true);
+      setForm({ current: '', newPass: '', confirm: '' });
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error('Failed to update password', err);
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
-    <form className="space-y-4 max-w-lg">
+    <form onSubmit={save} className="space-y-4 max-w-lg">
       <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Current Password</label>
         <input type="password" value={form.current} onChange={e => setForm({...form, current: e.target.value})} placeholder="••••••••" className="input-field" /></div>
       <div><label className="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
-        <input type="password" value={form.newPass} onChange={e => setForm({...form, newPass: e.target.value})} placeholder="••••••••" className="input-field" /></div>
+        <input type="password" value={form.newPass} onChange={e => setForm({...form, newPass: e.target.value})} placeholder="••••••••" className="input-field" />
+        <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p></div>
       <div><label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm Password</label>
         <input type="password" value={form.confirm} onChange={e => setForm({...form, confirm: e.target.value})} placeholder="••••••••" className="input-field" /></div>
-      <button type="submit" className="btn-primary">Update Password</button>
+      {error && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
+      {success && <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm flex items-center gap-2"><Check className="w-4 h-4" /> Password updated successfully</div>}
+      <button type="submit" disabled={saving} className={`btn-primary transition-all ${saving ? 'opacity-70 cursor-not-allowed' : ''}`}>
+        {saving ? 'Updating...' : 'Update Password'}
+      </button>
     </form>
   );
 }
@@ -105,7 +189,7 @@ function AppearanceTab() {
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const tabContent = { profile: <ProfileTab />, security: <SecurityTab />, notifications: <NotificationsTab />, company: <ProfileTab />, appearance: <AppearanceTab /> };
+  const tabContent = { profile: <ProfileTab />, security: <SecurityTab />, notifications: <NotificationsTab />, appearance: <AppearanceTab /> };
 
   return (
     <DashboardLayout title="Settings">
@@ -115,7 +199,7 @@ export default function SettingsPage() {
           <div className="card p-2">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left ${activeTab === id ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left ${activeTab === id ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 '}`}>
                 <Icon className="w-4 h-4" />{label}
               </button>
             ))}
@@ -123,7 +207,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 card">
+        <div className="card dark:bg-slate-900 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 mb-6" style={{fontFamily:'Syne,sans-serif'}}>
             {tabs.find(t => t.id === activeTab)?.label}
           </h2>
