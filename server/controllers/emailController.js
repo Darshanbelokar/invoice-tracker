@@ -24,10 +24,17 @@ const generateInvoicePDF = (doc, invoice) => {
   // BILL TO SECTION (LEFT SIDE)
   doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('BILL TO', margin, doc.y);
   doc.fontSize(10).font('Helvetica').fillColor('#555');
-  doc.text(invoice.clientId.name, margin, doc.y + 3);
-  doc.text(invoice.clientId.address || '123 Client Street', margin, doc.y);
-  doc.text(invoice.clientId.email || 'client@email.com', margin, doc.y);
-  doc.text(invoice.clientId.phone || 'Phone Number', margin, doc.y);
+console.log(invoice);
+console.log(invoice.clientId);
+
+if (!invoice.clientId) {
+    throw new Error("Client not found for this invoice");
+}
+
+doc.text(invoice.clientId?.name || "Unknown Client", margin, doc.y + 3);
+doc.text(invoice.clientId?.address || "123 Client Street", margin, doc.y);
+doc.text(invoice.clientId?.email || "client@email.com", margin, doc.y);
+doc.text(invoice.clientId?.phone || "Phone Number", margin, doc.y);
 
   // INVOICE DETAILS BOX (RIGHT SIDE)
   const invoiceBoxX = pageWidth - margin - 180;
@@ -150,30 +157,44 @@ exports.sendInvoiceEmail = async (req, res) => {
     let buffers = [];
 
     doc.on('data', buffers.push.bind(buffers));
+    doc.on('error', (error) => {
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error generating invoice PDF', error: error.message });
+      }
+    });
+
     doc.on('end', async () => {
-      const pdfData = Buffer.concat(buffers);
+      try {
+        const pdfData = Buffer.concat(buffers);
 
-      const mailOptions = {
-        from: `"Invoice App" <${process.env.EMAIL_USER}>`,
-        to: emailTo,
-        subject: `Invoice ${invoice._id}`,
-        text: `Please find attached your professional invoice.`,
-        attachments: [
-          {
-            filename: `invoice-${invoice._id}.pdf`,
-            content: pdfData
-          }
-        ]
-      };
+        const mailOptions = {
+          from: `"Invoice App" <${process.env.EMAIL_USER}>`,
+          to: emailTo,
+          subject: `Invoice ${invoice._id}`,
+          text: `Please find attached your professional invoice.`,
+          attachments: [
+            {
+              filename: `invoice-${invoice._id}.pdf`,
+              content: pdfData
+            }
+          ]
+        };
 
-      await transporter.sendMail(mailOptions);
-      res.status(200).json({ message: 'Invoice email sent with professional PDF' });
+        await transporter.sendMail(mailOptions);
+        res.status(200).json({ message: 'Invoice email sent with professional PDF' });
+      } catch (error) {
+        console.error('Error sending invoice email:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Error sending email', error: error.message });
+        }
+      }
     });
 
     generateInvoicePDF(doc, invoice);
     doc.end();
 
   } catch (error) {
+    console.error('Error in sendInvoiceEmail handler:', error);
     res.status(500).json({ message: 'Error sending email', error: error.message });
   }
 };
@@ -211,6 +232,7 @@ exports.sendPaymentConfirmation = async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({ message: 'Payment confirmation email sent' });
   } catch (error) {
+    console.error('Error sending payment confirmation email:', error);
     res.status(500).json({ message: 'Error sending payment confirmation', error: error.message });
   }
 };
@@ -254,6 +276,7 @@ exports.sendReminder = async (req, res) => {
     await transporter.sendMail(mailOptions);
     res.status(200).json({ message: 'Reminder email sent' });
   } catch (error) {
+    console.error('Error sending reminder email:', error);
     res.status(500).json({ message: 'Error sending reminder', error: error.message });
   }
 };

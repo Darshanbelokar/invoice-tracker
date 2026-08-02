@@ -1,4 +1,6 @@
 const Invoice = require('../models/Invoice');
+const Client = require('../models/Client');
+const Payment = require('../models/payment');
 
 // Create a new invoice
 exports.createInvoice = async (req, res) => {
@@ -9,8 +11,15 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    // Check if the client exists
+    const client = await Client.findById(clientId);
+
+    if (!client) {
+      return res.status(404).json({ message: 'Client not found' });
+    }
+
     const newInvoice = new Invoice({
-      userId: req.user, 
+      userId: req.user,
       clientId,
       items,
       totalAmount,
@@ -18,13 +27,21 @@ exports.createInvoice = async (req, res) => {
     });
 
     await newInvoice.save();
-    
+
     // Populate clientId before returning
-    const populatedInvoice = await Invoice.findById(newInvoice._id).populate('clientId');
-    
-    res.status(201).json({ message: 'Invoice created successfully', data: populatedInvoice });
+    const populatedInvoice = await Invoice.findById(newInvoice._id)
+      .populate('clientId');
+
+    res.status(201).json({
+      message: 'Invoice created successfully',
+      data: populatedInvoice
+    });
+
   } catch (error) {
-    res.status(500).json({ message: 'Error creating invoice', error: error.message });
+    res.status(500).json({
+      message: 'Error creating invoice',
+      error: error.message
+    });
   }
 };
 
@@ -63,6 +80,12 @@ exports.updateInvoice = async (req, res) => {
     const { id } = req.params;
     const { clientId, items, totalAmount, dueDate, status } = req.body;
 
+    const existingInvoice = await Invoice.findById(id);
+
+    if (!existingInvoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
     const updatedInvoice = await Invoice.findByIdAndUpdate(
       id,
       { clientId, items, totalAmount, dueDate, status },
@@ -71,6 +94,25 @@ exports.updateInvoice = async (req, res) => {
 
     if (!updatedInvoice) {
       return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    const nextStatus = String(status || updatedInvoice.status || '').toLowerCase();
+    const previousStatus = String(existingInvoice.status || '').toLowerCase();
+
+    if (nextStatus === 'paid' && previousStatus !== 'paid') {
+      await Payment.findOneAndUpdate(
+        { userId: updatedInvoice.userId, invoiceId: updatedInvoice._id },
+        {
+          userId: updatedInvoice.userId,
+          invoiceId: updatedInvoice._id,
+          stripeSessionId: `manual-${updatedInvoice._id.toString()}-${Date.now()}`,
+          amount: updatedInvoice.totalAmount,
+          currency: 'INR',
+          paymentMethod: 'manual',
+          status: 'completed'
+        },
+        { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+      );
     }
 
     // Populate clientId before returning

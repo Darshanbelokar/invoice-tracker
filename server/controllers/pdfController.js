@@ -6,19 +6,32 @@ const generateInvoicePDF = (doc, invoice) => {
   const pageWidth = doc.page.width;
   const pageHeight = doc.page.height;
   const margin = 40;
+  const client = invoice.clientId || {};
+  const user = invoice.userId || {};
+  const businessName = user.name || 'Your Business Name';
+  const businessAddress = user.address || '123 Business Ave, Mumbai, India';
+  const businessEmail = user.email || 'support@yourbusinessname.com';
+  const clientName = client.name || 'Client';
+  const clientAddress = client.address || '123 Client Street';
+  const clientEmail = client.email || 'client@email.com';
+  const clientPhone = client.phone || 'Phone Number';
+  const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
+  const issueDate = invoice.issueDate || invoice.createdAt || new Date();
+  const dueDate = invoice.dueDate || new Date();
+  const amount = Number(invoice.totalAmount || 0);
 
   //HEADER SECTION 
-  doc.fontSize(24).font('Helvetica-Bold').fillColor('#333').text('Your Business Name', margin, margin);
+  doc.fontSize(24).font('Helvetica-Bold').fillColor('#333').text(businessName, margin, margin);
   
   doc.moveDown(1);
 
   // BILL TO SECTION (LEFT SIDE)
   doc.fontSize(11).font('Helvetica-Bold').fillColor('#333').text('BILL TO', margin, doc.y);
   doc.fontSize(10).font('Helvetica').fillColor('#555');
-  doc.text(invoice.clientId.name, margin, doc.y + 3);
-  doc.text(invoice.clientId.address || '123 Client Street', margin, doc.y);
-  doc.text(invoice.clientId.email || 'client@email.com', margin, doc.y);
-  doc.text(invoice.clientId.phone || 'Phone Number', margin, doc.y);
+  doc.text(clientName, margin, doc.y + 3);
+  doc.text(clientAddress, margin, doc.y);
+  doc.text(clientEmail, margin, doc.y);
+  doc.text(clientPhone, margin, doc.y);
 
   // INVOICE DETAILS BOX (RIGHT SIDE)
   const invoiceBoxX = pageWidth - margin - 180;
@@ -40,10 +53,10 @@ const generateInvoicePDF = (doc, invoice) => {
   
   // Details
   doc.fontSize(8).font('Helvetica').fillColor('#666');
-  doc.text(`Issue: ${new Date(invoice.createdAt).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 48, { width: boxWidth - 20 });
-  doc.text(`Due: ${new Date(invoice.dueDate).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 62, { width: boxWidth - 20 });
+  doc.text(`Issue: ${new Date(issueDate).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 48, { width: boxWidth - 20 });
+  doc.text(`Due: ${new Date(dueDate).toLocaleDateString()}`, invoiceBoxX + 10, invoiceBoxY + 62, { width: boxWidth - 20 });
   doc.fontSize(9).font('Helvetica-Bold').fillColor('#333');
-  doc.text(`Amount: ₹${invoice.totalAmount.toFixed(2)}`, invoiceBoxX + 10, invoiceBoxY + 75, { width: boxWidth - 20 });
+  doc.text(`Amount: ₹${amount.toFixed(2)}`, invoiceBoxX + 10, invoiceBoxY + 75, { width: boxWidth - 20 });
 
   doc.moveDown(5);
 
@@ -69,7 +82,7 @@ const generateInvoicePDF = (doc, invoice) => {
   let rowNum = 0;
   doc.font('Helvetica').fontSize(10).fillColor('#333');
 
-  invoice.items.forEach((item, index) => {
+  invoiceItems.forEach((item, index) => {
     const alternateRow = index % 2;
     const rowBgColor = alternateRow ? '#f9f9f9' : '#ffffff';
     
@@ -77,10 +90,13 @@ const generateInvoicePDF = (doc, invoice) => {
     doc.rect(margin, itemY - 2, pageWidth - margin * 2, 18).fill(rowBgColor);
     doc.fillColor('#333');
     
+    const itemQuantity = Number(item.quantity || 0);
+    const itemPrice = Number(item.price || 0);
+
     doc.text(item.name || 'Item', col1, itemY);
-    doc.text(item.quantity.toString(), col2, itemY);
-    doc.text(`₹${item.price.toFixed(2)}`, col3, itemY);
-    doc.text(`₹${(item.quantity * item.price).toFixed(2)}`, col4, itemY);
+    doc.text(itemQuantity.toString(), col2, itemY);
+    doc.text(`₹${itemPrice.toFixed(2)}`, col3, itemY);
+    doc.text(`₹${(itemQuantity * itemPrice).toFixed(2)}`, col4, itemY);
     
     itemY += 18;
   });
@@ -93,7 +109,7 @@ const generateInvoicePDF = (doc, invoice) => {
 
   doc.font('Helvetica').fontSize(10).fillColor('#666');
   doc.text('Subtotal:', totalsX, totalsStartY, { width: 80, align: 'right' });
-  doc.text(`₹${invoice.totalAmount.toFixed(2)}`, totalsX + 100, totalsStartY, { width: 60, align: 'right' });
+  doc.text(`₹${amount.toFixed(2)}`, totalsX + 100, totalsStartY, { width: 60, align: 'right' });
 
   doc.moveDown(0.8);
   doc.text('GST (0%):', totalsX, doc.y, { width: 80, align: 'right' });
@@ -102,13 +118,13 @@ const generateInvoicePDF = (doc, invoice) => {
   doc.moveDown(1);
   doc.font('Helvetica-Bold').fontSize(12).fillColor('#000');
   doc.text('Total (INR):', totalsX, doc.y, { width: 80, align: 'right' });
-  doc.text(`₹${invoice.totalAmount.toFixed(2)}`, totalsX + 100, doc.y, { width: 60, align: 'right' });
+  doc.text(`₹${amount.toFixed(2)}`, totalsX + 100, doc.y, { width: 60, align: 'right' });
 
   // FOOTER
   doc.fontSize(9).fillColor('#666').font('Helvetica');
-  doc.text('Your Business Name', margin, pageHeight - 60);
-  doc.text('123 Business Ave, Mumbai, India', margin, doc.y);
-  doc.text('📞 +91 2000 0000 | 🌐 www.yourbusinessname.com | 📧 support@yourbusinessname.com', margin, doc.y);
+  doc.text(businessName, margin, pageHeight - 60);
+  doc.text(businessAddress, margin, doc.y);
+  doc.text(`📞 +91 2000 0000 | 🌐 www.yourbusinessname.com | 📧 ${businessEmail}`, margin, doc.y);
 
   // Payment status
   const statusColor = invoice.status === 'Paid' ? '#2ecc71' : '#e74c3c';

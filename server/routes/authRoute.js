@@ -6,7 +6,9 @@ const {
   login,
   verifyToken,
   logout,
-  refreshToken
+  refreshToken,
+  forgotPassword,
+  resetPassword
 } = require('../controllers/authController');
 
 authRouter.route('/register')
@@ -23,5 +25,11 @@ authRouter.route('/logout')
 
 authRouter.route('/refresh')
   .post(refreshToken);
+
+authRouter.route('/forgot-password')
+  .post(forgotPassword);
+
+authRouter.route('/reset-password')
+  .post(resetPassword);
 
 module.exports = authRouter;

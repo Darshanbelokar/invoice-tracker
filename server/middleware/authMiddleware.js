@@ -6,12 +6,16 @@ exports.authenticateToken = (req, res, next) => {
     // Check for token in Authorization header first
     let token = null;
     const authHeader = req.headers['authorization'];
-    
-    if (authHeader && authHeader.split(' ')[1]) {
-      token = authHeader.split(' ')[1]; // Extract token from "Bearer <token>"
-    } 
+
+    if (authHeader && typeof authHeader === 'string') {
+      const [scheme, credentials] = authHeader.split(' ');
+      if (scheme?.toLowerCase() === 'bearer' && credentials) {
+        token = credentials;
+      }
+    }
+
     // Also check for token in query parameters (for file downloads)
-    else if (req.query.token) {
+    if (!token && req.query.token) {
       token = req.query.token;
     }
 
@@ -23,7 +27,9 @@ exports.authenticateToken = (req, res, next) => {
       if (err) {
         return res.status(403).json({ message: 'Invalid or expired token' });
       }
+
       req.user = user.userId;
+      req.userId = user.userId;
       next();
     });
   } catch (error) {
@@ -34,13 +40,13 @@ exports.authenticateToken = (req, res, next) => {
 // Middleware to verify if user owns the resource
 exports.authorizeUser = (req, res, next) => {
   try {
-    const { userId } = req.params || req.body;
-    
-    if (!req.user) {
+    const userId = req.params.userId || req.body.userId;
+
+    if (!req.userId) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    if (req.user.userId !== userId && req.user.userId.toString() !== userId) {
+    if (req.userId.toString() !== userId?.toString()) {
       return res.status(403).json({ message: 'Not authorized to access this resource' });
     }
 

@@ -1,6 +1,17 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:3000';
 
 // Register a new user
 exports.register = async (req, res) => {
@@ -164,5 +175,96 @@ exports.refreshToken = async (req, res) => {
     });
   } catch (error) {
     res.status(401).json({ message: 'Error refreshing token', error: error.message });
+  }
+};
+
+// Send password reset link
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const resetToken = jwt.sign(
+      { userId: user._id, email: user.email, purpose: 'password-reset' },
+      process.env.JWT_SECRET || 'your_secret_key',
+      { expiresIn: '1h' }
+    );
+
+    const resetUrl = `${getClientUrl()}/reset-password/${resetToken}`;
+
+    await transporter.sendMail({
+      from: `"Invoice App" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Reset your InvoiceAI password',
+      html: `
+        <h2>Password reset request</h2>
+        <p>We received a request to reset your password.</p>
+        <p>Click the link below to choose a new password:</p>
+        <p><a href="${resetUrl}">${resetUrl}</a></p>
+        <p>This link will expire in 1 hour.</p>
+      `
+    });
+
+    res.status(200).json({ message: 'Password reset email sent' });
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      const user = await User.findOne({ email: req.body.email });
+
+      if (!user) {
+        return res.status(500).json({ message: 'Error sending password reset email', error: error.message });
+      }
+
+      const fallbackToken = jwt.sign(
+        { userId: user._id, email: user.email, purpose: 'password-reset' },
+        process.env.JWT_SECRET || 'your_secret_key',
+        { expiresIn: '1h' }
+      );
+
+      return res.status(200).json({
+        message: 'Reset email could not be sent. Use the reset link below in development.',
+        resetUrl: `${getClientUrl()}/reset-password/${fallbackToken}`
+      });
+    }
+
+    res.status(500).json({ message: 'Error sending password reset email', error: error.message });
+  }
+};
+
+// Reset password using a reset token
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key');
+
+    if (decoded.purpose !== 'password-reset') {
+      return res.status(400).json({ message: 'Invalid reset token' });
+    }
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully' });
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid or expired reset token', error: error.message });
   }
 };
