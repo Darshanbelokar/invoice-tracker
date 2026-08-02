@@ -3,7 +3,7 @@ import Topbar from '../components/Topbar';
 
 export default function DashboardLayout({ children, title, topbarProps }) {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 dark:text-slate-100 transition-colors">
       <Sidebar />
       <div className="lg:pl-60 flex flex-col min-h-screen">
         <Topbar title={title} {...topbarProps} />

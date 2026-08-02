@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Modal from './Modal';
 import { Plus, Trash2 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 import { formatCurrency } from '../utils/helpers';
 
 const emptyItem = { description: '', qty: 1, rate: 0 };

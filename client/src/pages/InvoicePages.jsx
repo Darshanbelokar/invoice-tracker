@@ -3,7 +3,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import InvoiceTable from '../components/InvoiceTable';
 import CreateInvoiceModal from '../components/CreateInvoiceModal';
 import { Search, Filter, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 
 const STATUSES = ['all', 'paid', 'pending', 'overdue', 'draft'];
 const PER_PAGE = 5;

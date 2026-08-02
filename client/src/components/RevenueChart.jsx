@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { formatCurrency } from '../utils/helpers';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/useApp';
 
 export default function RevenueChart() {
   const { invoices } = useApp();

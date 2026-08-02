@@ -1,8 +1,32 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
-export const getToken = () => localStorage.getItem('authToken');
-export const setToken = (token) => localStorage.setItem('authToken', token);
-export const clearToken = () => localStorage.removeItem('authToken');
+// Checks both 'authToken' and 'token' keys in case of naming discrepancies
+export const getToken = () => {
+  return localStorage.getItem('authToken') || localStorage.getItem('token');
+};
+
+const notifyAuthChange = () => {
+  // Dispatches both event variations to guarantee listeners in App.jsx pick up changes
+  window.dispatchEvent(new Event('auth-changed'));
+  window.dispatchEvent(new Event('auth-change'));
+};
+
+export const setToken = (token) => {
+  if (token) {
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('token', token);
+  }
+  notifyAuthChange();
+};
+
+export const clearToken = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('token');
+  notifyAuthChange();
+};
+
+// Export alias so both import styles work across all components
+export const removeToken = clearToken;
 
 const getHeaders = (includeAuth = true) => {
   const headers = {
@@ -36,6 +60,10 @@ export const apiCall = async (endpoint, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
+      // If token expires or server returns 401, clear local storage
+      if (response.status === 401) {
+        clearToken();
+      }
       throw new Error(data.message || `API Error: ${response.status}`);
     }
 
@@ -74,6 +102,20 @@ export const authAPI = {
   refresh: () =>
     apiCall('/auth/refresh', {
       method: 'POST',
+    }),
+
+  forgotPassword: (email) =>
+    apiCall('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      headers: getHeaders(false),
+    }),
+
+  resetPassword: (token, newPassword) =>
+    apiCall('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+      headers: getHeaders(false),
     }),
 };
 
@@ -189,9 +231,36 @@ export const pdfAPI = {
       method: 'GET',
     }),
 
-  download: (invoiceId) => {
+  download: async (invoiceId) => {
     const token = getToken();
-    window.location.href = `${API_BASE_URL}/pdf/download/${invoiceId}?token=${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/pdf/download/${invoiceId}`, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!response.ok) {
+      let message = `Download failed: ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        message = errorData.message || message;
+      } catch {
+        // Keep standard fallback error message
+      }
+
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `invoice-${invoiceId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
   },
 };
 
