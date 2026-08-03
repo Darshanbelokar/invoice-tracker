@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, ArrowRight, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,6 +10,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [form, setForm] = useState({ email: '', password: '', remember: false });
   const navigate = useNavigate();
+
+  // --- OAUTH CALLBACK HANDLER ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+
+    if (token) {
+      setToken(token); // Save token to localStorage / headers
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const socialSignIn = (provider) => {
     const API_URL =
