@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const { authenticateToken, errorHandler, requestLogger } = require('./middleware/authMiddleware');
 
 const app = express();
+
+// Allowed Origins for CORS
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -11,35 +14,50 @@ const allowedOrigins = [
   'http://127.0.0.1:5173'
 ];
 
-// middleware
+// Add process.env.CLIENT_URL from Render if configured
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+
+// Middleware
 app.use(express.json());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like Mobile apps, Postman, or server-to-server)
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
       return;
     }
-
-    callback(new Error('Not allowed by CORS'));
+    callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(requestLogger); // Log all requests
 
-// auth routes (public)
+// Connect to MongoDB Atlas
+if (process.env.MONGO_URI) {
+  mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('Successfully connected to MongoDB Atlas!'))
+    .catch((err) => console.error('MongoDB connection error:', err));
+} else {
+  console.warn('WARNING: MONGO_URI is not defined in environment variables.');
+}
+
+// Auth routes (public)
 app.use('/api/auth', require('./routes/authRoute'));
 
-// protected routes (require authentication)
+// Protected routes (require authentication)
 app.use('/api/clients', authenticateToken, require('./routes/clientRoute'));
 app.use('/api/email', authenticateToken, require('./routes/emailRoute'));
 app.use('/api/invoice', authenticateToken, require('./routes/invoiceRoute'));
 app.use('/api/payment', authenticateToken, require('./routes/paymentRoute'));
 app.use('/api/pdf', authenticateToken, require('./routes/pdfRoute'));
-app.use('/api/user', authenticateToken, require('./routes/userRoute'))  ;
+app.use('/api/user', authenticateToken, require('./routes/userRoute'));
 
-// test route
+// Test route
 app.get('/', (req, res) => {
   res.send('InvoiceIQ API is running...');
 });

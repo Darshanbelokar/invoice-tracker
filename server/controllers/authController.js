@@ -102,6 +102,28 @@ exports.login = async (req, res) => {
   }
 };
 
+// OAuth Callback Controller (Google/GitHub)
+exports.oauthCallback = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.redirect(`${getClientUrl()}/login?error=AuthenticationFailed`);
+    }
+
+    // Generate JWT token for authenticated OAuth user
+    const token = jwt.sign(
+      { userId: req.user._id, email: req.user.email },
+      process.env.JWT_SECRET || 'your_secret_key',
+      { expiresIn: '7d' }
+    );
+
+    // Redirect user back to React frontend with token in search params
+    res.redirect(`${getClientUrl()}/login?token=${token}`);
+  } catch (error) {
+    console.error('OAuth Callback Error:', error);
+    res.redirect(`${getClientUrl()}/login?error=OAuthError`);
+  }
+};
+
 // Verify token
 exports.verifyToken = async (req, res) => {
   try {

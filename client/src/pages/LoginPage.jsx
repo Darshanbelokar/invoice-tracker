@@ -12,13 +12,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const socialSignIn = (provider) => {
-    const urls = {
-      google: 'https://accounts.google.com/signin',
-      github: 'https://github.com/login',
-    };
+  const API_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-    window.open(urls[provider], '_blank', 'noopener,noreferrer');
-  };
+  window.location.href = `${API_URL}/auth/${provider}`;
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
