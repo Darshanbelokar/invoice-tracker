@@ -4,6 +4,9 @@ const GitHubStrategy = require('passport-github2').Strategy;
 const User = require('../models/User'); // Check this path matches your User model
 
 // Google Strategy
+
+console.log("Loaded Google Client ID:", process.env.GOOGLE_CLIENT_ID);  
+
 passport.use(
   new GoogleStrategy(
     {

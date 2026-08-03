@@ -10,8 +10,11 @@ const {
   refreshToken,
   forgotPassword,
   resetPassword,
-  oauthCallback // Add this helper to authController or import directly
+  oauthCallback
 } = require('../controllers/authController');
+
+// Client URL dynamic fallback (production Vercel vs local development)
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Existing Auth Routes
 authRouter.route('/register')
@@ -43,7 +46,10 @@ authRouter.get(
 
 authRouter.get(
   '/google/callback',
-  passport.authenticate('google', { session: false, failureRedirect: 'http://localhost:3000/login?error=OAuthFailed' }),
+  passport.authenticate('google', { 
+    session: false, 
+    failureRedirect: `${CLIENT_URL}/login?error=OAuthFailed` 
+  }),
   oauthCallback
 );
 
@@ -55,7 +61,10 @@ authRouter.get(
 
 authRouter.get(
   '/github/callback',
-  passport.authenticate('github', { session: false, failureRedirect: 'http://localhost:3000/login?error=OAuthFailed' }),
+  passport.authenticate('github', { 
+    session: false, 
+    failureRedirect: `${CLIENT_URL}/login?error=OAuthFailed` 
+  }),
   oauthCallback
 );
 

@@ -11,7 +11,8 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-const getClientUrl = () => process.env.CLIENT_URL || 'http://localhost:3000';
+// Set default fallback directly to your live Vercel app
+const getClientUrl = () => process.env.CLIENT_URL || 'https://invoice-tracker-gray.vercel.app';
 
 // Register a new user
 exports.register = async (req, res) => {
