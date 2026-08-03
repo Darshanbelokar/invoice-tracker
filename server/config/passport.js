@@ -1,6 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
+
 const User = require('../models/User');
 
 // Dynamic base URL for callbacks (Render in production, localhost in development)
@@ -48,54 +48,6 @@ passport.use(
   )
 );
 
-// --- GitHub Strategy ---
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-  passport.use(
-    new GitHubStrategy(
-      {
-        clientID: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-        callbackURL: `${BACKEND_URL}/api/auth/github/callback`,
-        scope: ['user:email'],
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          const primaryEmail =
-            profile.emails && profile.emails[0]
-              ? profile.emails[0].value
-              : `${profile.username || profile.id}@github.com`;
 
-          // Fallback name logic to prevent Mongoose validation failure
-          const userName = 
-            profile.displayName || 
-            profile.username || 
-            `GitHub User ${profile.id}`;
-
-          let user = await User.findOne({ 
-            $or: [{ githubId: profile.id }, { email: primaryEmail }] 
-          });
-
-          if (!user) {
-            user = await User.create({
-              name: userName, // Guaranteed non-empty string
-              email: primaryEmail,
-              password: '',
-              githubId: profile.id,
-            });
-          } else {
-            // Update githubId or name if missing
-            if (!user.githubId) user.githubId = profile.id;
-            if (!user.name) user.name = userName;
-            await user.save();
-          }
-
-          return done(null, user);
-        } catch (err) {
-          return done(err, null);
-        }
-      }
-    )
-  );
-}
 
 module.exports = passport;

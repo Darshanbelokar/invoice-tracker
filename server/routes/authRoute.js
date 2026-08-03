@@ -53,19 +53,4 @@ authRouter.get(
   oauthCallback
 );
 
-// --- GitHub OAuth Routes ---
-authRouter.get(
-  '/github',
-  passport.authenticate('github', { scope: ['user:email'] })
-);
-
-authRouter.get(
-  '/github/callback',
-  passport.authenticate('github', { 
-    session: false, 
-    failureRedirect: `${CLIENT_URL}/login?error=OAuthFailed` 
-  }),
-  oauthCallback
-);
-
 module.exports = authRouter;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Zap, ArrowRight, Globe, User } from 'lucide-react';
+import { Eye, EyeOff, Zap, ArrowRight, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authAPI, setToken } from '../services/api';
 
@@ -12,11 +12,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   const socialSignIn = (provider) => {
-  const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const API_URL =
+      import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-  window.location.href = `${API_URL}/auth/${provider}`;
-};
+    window.location.href = `${API_URL}/auth/${provider}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -110,22 +110,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Social Sign-in */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {[
-              { Icon: Globe, label: 'Google', provider: 'google' },
-              { Icon: User, label: 'GitHub', provider: 'github' }
-            ].map(({ Icon, label, provider }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => socialSignIn(provider)}
-                className="flex items-center justify-center gap-2 py-2.5 px-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-medium transition-colors"
-              >
-                <Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                {label}
-              </button>
-            ))}
+          {/* Single Social Sign-in (Google Only) */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => socialSignIn('google')}
+              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200 rounded-xl text-sm font-medium transition-colors"
+            >
+              <Globe className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              Sign in with Google
+            </button>
           </div>
 
           <div className="relative mb-6">
