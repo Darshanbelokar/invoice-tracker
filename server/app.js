@@ -1,10 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const passport = require('passport'); // 1. Import Passport
+const passport = require('passport');
 const { authenticateToken, errorHandler, requestLogger } = require('./middleware/authMiddleware');
 
-// 2. Load your Passport strategy configuration
+// Load Passport strategy config
 require('./config/passport'); 
 
 const app = express();
@@ -27,7 +27,6 @@ if (process.env.CLIENT_URL) {
 app.use(express.json());
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like Mobile apps, Postman, or server-to-server)
     if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
       return;
@@ -41,17 +40,29 @@ app.use(cors({
 
 app.use(requestLogger); // Log all requests
 
-// 3. Initialize Passport Middleware
+// Initialize Passport Middleware
 app.use(passport.initialize());
 
-// Connect to MongoDB Atlas
-if (process.env.MONGO_URI) {
-  mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Successfully connected to MongoDB Atlas!'))
-    .catch((err) => console.error('MongoDB connection error:', err));
-} else {
-  console.warn('WARNING: MONGO_URI is not defined in environment variables.');
-}
+// Helper function to establish DB Connection before handling requests
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  if (!process.env.MONGO_URI) {
+    console.error('FATAL ERROR: MONGO_URI is missing in environment variables.');
+    return;
+  }
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Successfully connected to MongoDB Atlas!');
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+  }
+};
+
+// Ensure DB is connected on incoming requests
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
+});
 
 // Auth routes (public)
 app.use('/api/auth', require('./routes/authRoute'));

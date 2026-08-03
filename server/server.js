@@ -1,16 +1,24 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
 const app = require('./app');
+const mongoose = require('mongoose');
 
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB Connected');
+const startServer = async () => {
+  try {
+    if (process.env.MONGO_URI) {
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log('Connected to MongoDB Atlas');
+    } else {
+      console.warn('WARNING: MONGO_URI environment variable is missing.');
+    }
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
 
-  })
-  .catch(err => console.error(err));
+startServer();
