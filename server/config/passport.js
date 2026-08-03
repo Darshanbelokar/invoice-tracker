@@ -63,19 +63,29 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
           const primaryEmail =
             profile.emails && profile.emails[0]
               ? profile.emails[0].value
-              : `${profile.username}@github.com`;
+              : `${profile.username || profile.id}@github.com`;
 
-          let user = await User.findOne({ email: primaryEmail });
+          // Fallback name logic to prevent Mongoose validation failure
+          const userName = 
+            profile.displayName || 
+            profile.username || 
+            `GitHub User ${profile.id}`;
+
+          let user = await User.findOne({ 
+            $or: [{ githubId: profile.id }, { email: primaryEmail }] 
+          });
 
           if (!user) {
             user = await User.create({
-              name: profile.displayName || profile.username,
+              name: userName, // Guaranteed non-empty string
               email: primaryEmail,
               password: '',
               githubId: profile.id,
             });
-          } else if (!user.githubId) {
-            user.githubId = profile.id;
+          } else {
+            // Update githubId or name if missing
+            if (!user.githubId) user.githubId = profile.id;
+            if (!user.name) user.name = userName;
             await user.save();
           }
 
@@ -86,8 +96,6 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
       }
     )
   );
-} else {
-  console.warn('WARNING: GitHub OAuth credentials missing. GitHub Login disabled.');
 }
 
 module.exports = passport;
