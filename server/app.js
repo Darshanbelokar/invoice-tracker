@@ -1,7 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const passport = require('passport'); // 1. Import Passport
 const { authenticateToken, errorHandler, requestLogger } = require('./middleware/authMiddleware');
+
+// 2. Load your Passport strategy configuration
+require('./config/passport'); 
 
 const app = express();
 
@@ -36,6 +40,9 @@ app.use(cors({
 }));
 
 app.use(requestLogger); // Log all requests
+
+// 3. Initialize Passport Middleware
+app.use(passport.initialize());
 
 // Connect to MongoDB Atlas
 if (process.env.MONGO_URI) {
